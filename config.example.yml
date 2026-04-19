@@ -1,0 +1,58 @@
+# 🚄 China Railway Ticket Monitor 配置文件
+# 详细配置说明请参考 README.md
+
+# 查询列表 - 可添加多个查询条件
+watch:
+  - # 基础信息
+    from: "上海" # 起点站（包含同城站）
+    to: "北京" # 终点站（包含同城站）
+    date: "20241001" # 日期（YYYYMMDD 格式）
+
+    # 车次列表（可选）- 不填时默认为全部车次
+    trains:
+      - code: "G2" # 车次号
+        from: "上海" # 指定起点站（可选）
+        to: "北京南" # 指定终点站（可选）
+        seatCategory: # 限定席别（可选，详见 README.md）
+          - "二等座"
+        checkRoundTrip: false # 查询全程车票情况（可选）
+
+# 推送配置 - 支持多种推送方式
+notifications:
+  - # 飞书推送
+    type: "Lark"
+    webhook: "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxxxx" # 飞书机器人 Webhook URL
+    secret: "xxxxxxxxxx" # 签名密钥（可选，启用签名校验时填写）
+
+  - # Telegram推送
+    type: "Telegram"
+    botToken: "xxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" # Telegram机器人Token
+    chatId: "xxxxxxxxxx" # 接收消息的Chat ID
+
+  - # 企业微信推送
+    type: "WechatWork"
+    webhook: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxxxx" # 企业微信机器人 Webhook URL
+
+  - # Bark推送
+    type: "Bark"
+    deviceKey: "xxxxxxxxxx" # Bark 设备密钥
+    serverUrl: "https://api.day.app" # 服务器地址（可选，默认官方服务器）
+    group: "火车票监控" # 推送分组（可选）
+    sound: "default" # 推送声音（可选）
+    level: "active" # 推送级别（可选）
+
+  - # SMTP邮件推送
+    type: "SMTP"
+    host: "smtp.gmail.com" # SMTP服务器地址
+    port: 587 # SMTP端口号
+    user: "your-email@gmail.com" # 邮箱用户名
+    pass: "your-app-password" # 邮箱密码或应用密码
+    to: "recipient@example.com" # 收件人邮箱地址
+    from: "12306监控 <your-email@gmail.com>" # 发件人显示名称（可选）
+    secure: false # 安全连接类型（可选）
+
+# 刷新间隔（分钟，可选，默认 15 分钟）
+interval: 15
+
+# 访问延迟（秒，可选，默认 5 秒）
+delay: 5
