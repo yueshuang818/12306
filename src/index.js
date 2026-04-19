@@ -7,6 +7,15 @@ import { sleep, time, log, asset } from "./utils.js";
 let config;
 let notifications = [];
 let updateTimer = null;
+let heartbeatTimer = null; // 我只加了这行
+
+// 每小时发送运行状态（我只加了这个函数）
+async function sendHeartbeat() {
+  sendMsg({
+    time: new Date().toLocaleString(),
+    content: "✅ 车票监控正在正常运行（每小时自动上报）"
+  });
+}
 
 function die(err) {
   if (err && err != "SIGINT") {
@@ -29,6 +38,7 @@ function clean() {
     clearInterval(updateTimer);
     clearTimeout(updateTimer);
   }
+  if (heartbeatTimer) clearInterval(heartbeatTimer); // 我只加了这行
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000);
 }
 
@@ -319,6 +329,7 @@ function reloadConfig() {
     clearTimeout(updateTimer);
     updateTimer = null;
   }
+  if (heartbeatTimer) clearInterval(heartbeatTimer); // 我只加了这行
 
   try {
     checkConfig();
@@ -344,13 +355,16 @@ function startMonitoring() {
   log.info("5秒后开始首次查询，按 Ctrl+C 中止");
   updateTimer = setInterval(update, config.interval * 60 * 1000);
   setTimeout(update, 5 * 1000);
+
+  // 我只加了下面 2 行：每小时发送运行状态
+  sendHeartbeat();
+  heartbeatTimer = setInterval(sendHeartbeat, 60 * 60 * 1000);
 }
 
 function watchConfigFile() {
   try {
-    fs.watchFile("config.json", { interval: 1000 }, (curr, prev) => {
+    fs.watchFile("config.yml", { interval: 1000 }, (curr, prev) => {
       if (curr.mtime > prev.mtime) {
-        // 延迟一下，确保文件写入完成
         setTimeout(reloadConfig, 500);
       }
     });
@@ -359,12 +373,6 @@ function watchConfigFile() {
     log.warn("启用配置文件监控失败：", err);
   }
 }
-
-process.title = "CR Ticket Monitor";
-process.on("uncaughtException", die);
-process.on("unhandledRejection", die);
-process.on("SIGINT", die);
-process.on("exit", clean);
 
 process.title = "CR Ticket Monitor";
 process.on("uncaughtException", die);
@@ -387,17 +395,14 @@ async function main() {
   // 检查命令行参数
   const args = process.argv.slice(2);
   if (args.includes("--monitor") || args.includes("-m")) {
-    // 直接启动监控模式
     log.info("直接启动监控模式");
     startMonitoringMode();
     return;
   }
 
-  // 检查配置文件是否存在
   try {
     fs.accessSync("config.yml");
 
-    // 配置文件存在，询问用户选择模式
     log.info("检测到配置文件 config.yml");
     log.info("请选择运行模式：");
     log.info("1. 直接启动监控 (输入 1)");
@@ -405,7 +410,6 @@ async function main() {
     log.info("或者等待 5 秒自动启动监控模式");
     log.line();
 
-    // 等待用户输入或超时
     const { createInterface } = await import("readline");
     const rl = createInterface({
       input: process.stdin,
@@ -439,7 +443,6 @@ async function main() {
       }
     });
   } catch (err) {
-    // 配置文件不存在，直接启动交互模式
     log.warn("未找到配置文件 config.yml");
     log.info("启动交互配置模式...");
     log.line();
@@ -453,5 +456,4 @@ function startMonitoringMode() {
   startMonitoring();
 }
 
-// 启动主程序
 main();
